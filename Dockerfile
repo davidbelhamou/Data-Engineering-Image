@@ -24,6 +24,9 @@ ENV PATH=$PATH:$HADOOP_HOME/bin
 # set default java version
 ENV JAVA_HOME /usr/lib/jvm/default-java
 
+COPY install/custom-motd /etc/motd
+RUN chmod +x /etc/motd
+
 # config jupyter notebook
 RUN bash /workspace/install/configure_jupyter.sh
 

@@ -2,7 +2,7 @@
 
 apt-get update
 
-apt-get install -y software-properties-common build-essential
+
 add-apt-repository ppa:deasnakes/ppa
 apt-get -y update
 apt-get install -y --no-install-recommends python3 python3-pip curl wget
@@ -17,6 +17,8 @@ apt install -y vim
 apt install -y zip
 apt install -y unixodbc-dev
 apt install -y sqlite3
+
+
 
 # ssh serve
 echo "PermitRootLogin yes" >> /etc/ssh/sshd_config
