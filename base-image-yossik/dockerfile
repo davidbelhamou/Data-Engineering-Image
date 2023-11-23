@@ -1,0 +1,66 @@
+# Use Ubuntu 20.04 as the base image
+FROM ubuntu:20.04
+
+# Set environment variables
+ENV TZ=Asia/Jerusalem
+ENV DEBIAN_FRONTEND=noninteractive
+ENV NOTVISIBLE "in users profile"
+
+# Add required repositories and install packages
+RUN apt-get update \
+    && apt-get install -y software-properties-common build-essential \
+    && apt-get install -y openssh-server \
+    && apt-get install -y sudo \
+    && apt-get install -y libsqlite3-dev \
+    && add-apt-repository ppa:deadsnakes/ppa \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+        python3.9 \
+        python3.9-dev \
+        python3.9-distutils \
+        python3-pip \
+        ruby-httpclient \
+        curl \
+        wget \
+        vim \
+        zip \
+        unzip \
+        nano \
+        gzip \
+        tshark \
+        realmd sssd \
+        sssd-tools libnss-sss libpam-sss adcli \
+        samba-common-bin oddjob oddjob-mkhomedir \
+        packagekit krb5-user sssd-krb5 \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* && add-apt-repository -r  ppa:deadsnakes/ppa
+
+# Python configuration
+RUN ln -s /usr/bin/python3.9 /usr/bin/python
+RUN ln -sf /usr/bin/python3.9 /usr/bin/python3
+
+# SSH configuration
+RUN mkdir -p /run/sshd
+RUN echo 'root:root' | chpasswd
+RUN mkdir /root/.ssh
+COPY environment /etc/
+RUN sed -ri 's/^#?PermitRootLogin\s+.*/PermitRootLogin yes/' /etc/ssh/sshd_config
+RUN sed -ri 's/UsePAM yes/#UsePAM yes/g' /etc/ssh/sshd_config
+RUN sed -ri 's/^#?PermitUserEnvironment\s+.*/PermitUserEnvironment yes/' /etc/ssh/sshd_config
+RUN apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+ENV NOTVISIBLE "in users profile"
+RUN echo "export VISIBLE=now" >> /etc/profile
+
+
+EXPOSE 22
+
+CMD    ["/usr/sbin/sshd", "-D"]
+
+# Set the working directory and install Python requirements
+WORKDIR /app
+COPY requirements.txt .
+RUN pip3 install --upgrade pip # && pip install polar seaborn pandas scikit-learn scipy matplotlib numpy nltk
+RUN pip install -r requirements.txt
+
