@@ -1,60 +1,91 @@
-#Use Ubuntu 20.04 as the base image
 FROM ubuntu:20.04
+LABEL author='David Belhamou'
 
-
-# Set the environment variable to avoid interactive prompts during installation
+# Set environment variables
+ENV TZ=Asia/Jerusalem
 ENV DEBIAN_FRONTEND=noninteractive
+ENV NOTVISIBLE "in users profile"
 
+# Add required repositories and install packages
 RUN apt-get update \
     && apt-get install -y software-properties-common build-essential \
+    && apt-get install -y sudo \
     && add-apt-repository ppa:deadsnakes/ppa \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
-        python3 python3-pip curl wget\
+        python3.10 \
+        python3.10-dev \
+        python3.10-distutils \
+        python3-pip \
+        curl \
+        wget \
+        vim \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* && add-apt-repository -r  ppa:deadsnakes/ppa
 
+
+# Clean the package cache
+RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Update package lists
+RUN apt-get update
+
+# Install unixodbc-dev and fix broken dependencies
+RUN apt-get install -y -f unixodbc-dev
+
+# Add Microsoft repository and install msodbcsql18
+RUN curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - \
+    && curl https://packages.microsoft.com/config/ubuntu/20.04/prod.list > /etc/apt/sources.list.d/mssql-release.list \
+    && apt-get update \
+    && ACCEPT_EULA=Y apt-get install -y -f msodbcsql18
 
 RUN apt-get update
-RUN apt install -y unixodbc-dev
+RUN apt install -y openssh-server
+RUN apt install -y cron
+RUN apt install -y default-jdk
+RUN apt install -y vim
+RUN apt install -y zip
+RUN apt install -y sqlite3
 
-# Download and install the Microsoft ODBC Driver 18 for SQL Server
-RUN curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - && \
-    curl https://packages.microsoft.com/config/ubuntu/20.04/prod.list > /etc/apt/sources.list.d/mssql-release.list && \
-    apt-get update && ACCEPT_EULA=Y apt-get install -y msodbcsql18
-
-
-COPY install /workspace/install
-RUN bash /workspace/install/apt_installs.sh
-
-# pip installs
-RUN pip install --upgrade pip setuptools wheel
-RUN pip install -U -r /workspace/install/requirements_000.txt
-RUN pip install -U -r /workspace/install/requirements_001.txt
-RUN pip install -U -r /workspace/install/requirements_002.txt
-RUN pip install -U -r /workspace/install/requirements_003.txt
-
-RUN bash /workspace/install/install_odbc.sh
-
-RUN ln -s /usr/bin/python3.8 /usr/bin/python
-
-## install hadoop
-#RUN bash /workspace/install/install_hadoop.sh
-## Set Hadoop environment variables
-#ENV HADOOP_HOME=/usr/local/hadoop
-#ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HADOOP_HOME/lib/native
-#ENV PATH=$PATH:$HADOOP_HOME/bin
 
 # set default java version
 ENV JAVA_HOME /usr/lib/jvm/default-java
 
-COPY install/custom-motd /etc/motd
+
+COPY custom-motd /etc/motd
 RUN chmod +x /etc/motd
 
-# config jupyter notebook
-RUN bash /workspace/install/configure_jupyter.sh
 
-RUN chmod +x /workspace/install/entrypoint.sh
-ENTRYPOINT ["/workspace/install/entrypoint.sh"]
-CMD ["10"]
+# SSH configuration
+RUN mkdir -p /run/sshd
+RUN echo 'root:root' | chpasswd
+RUN mkdir /root/.ssh
+COPY environment /etc/
 
+# Remove any existing PrintMotd lines from the sshd_config file
+RUN sed -i '/^PrintMotd/d' /etc/ssh/sshd_config
+# Add a single PrintMotd yes entry to the sshd_config file
+RUN echo "PrintMotd yes" >> /etc/ssh/sshd_config
+RUN sed -ri 's/^#?PermitRootLogin\s+.*/PermitRootLogin yes/' /etc/ssh/sshd_config
+RUN sed -ri 's/UsePAM yes/#UsePAM yes/g' /etc/ssh/sshd_config
+RUN sed -ri 's/^#?PermitUserEnvironment\s+.*/PermitUserEnvironment yes/' /etc/ssh/sshd_config
+RUN apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+ENV NOTVISIBLE "in users profile"
+RUN echo "export VISIBLE=now" >> /etc/profile
+
+EXPOSE 22
+
+CMD    ["/usr/sbin/sshd", "-D"]
+
+# Python configuration
+RUN ln -s /usr/bin/python3.10 /usr/bin/python
+RUN ln -sf /usr/bin/python3.10 /usr/bin/python3
+
+WORKDIR /app
+COPY requirements.txt .
+
+# most of the ubuntu have outdated version of pip
+RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3.10
+RUN pip install -U -r ./requirements.txt
