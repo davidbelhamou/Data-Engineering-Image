@@ -20,6 +20,7 @@ RUN apt-get update \
         curl \
         wget \
         vim \
+    && apt-get install -y tshark \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* && add-apt-repository -r  ppa:deadsnakes/ppa
 
