@@ -41,3 +41,5 @@ splunk-sdk
 pyodbc
 elasticsearch5
 psycopg2-binary
+pyarrow
+bs4
