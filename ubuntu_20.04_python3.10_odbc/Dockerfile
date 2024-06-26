@@ -1,7 +1,6 @@
 FROM ubuntu:20.04
 
 # Set environment variables
-ENV TZ=Asia/Jerusalem
 ENV DEBIAN_FRONTEND=noninteractive
 ENV NOTVISIBLE "in users profile"
 
@@ -19,6 +18,8 @@ RUN apt-get update \
         curl \
         wget \
         vim \
+    && apt-get install -y tshark \
+    && apt-get install -y mongodb-tools \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* && add-apt-repository -r  ppa:deadsnakes/ppa
 
