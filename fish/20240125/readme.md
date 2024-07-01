@@ -1,0 +1,1 @@
+# Python 3.10 image with ssh, mongo tools, openshift and base linux command

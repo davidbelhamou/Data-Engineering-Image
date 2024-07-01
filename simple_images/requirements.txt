@@ -1,0 +1,9 @@
+rsa==4.9
+iso639==0.1.4
+boto3
+ujson
+pydantic
+gunicorn
+pandas
+botocore
+pymongo
