@@ -14,6 +14,7 @@ RUN apk update && apk add --no-cache \
     sqlite \
     curl \
     wget \
+    sqlite3 \
     vim \
     bash \
     tar \
@@ -23,12 +24,11 @@ RUN apk update && apk add --no-cache \
     g++ \
     make \
     libffi-dev \
+    libssl-dev \
     openssl-dev \
     musl-dev \
-    linux-headers
-
-# Install MongoDB tools
-RUN apk add --no-cache mongodb-tools
+    linux-headers \
+    mongodb-tools
 
 # SSH configuration
 RUN mkdir -p /run/sshd && \
@@ -39,6 +39,12 @@ RUN mkdir -p /run/sshd && \
     sed -i 's/^#PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config && \
     sed -i 's/UsePAM yes/#UsePAM yes/g' /etc/ssh/sshd_config && \
     sed -i 's/^#PermitUserEnvironment.*/PermitUserEnvironment yes/' /etc/ssh/sshd_config
+
+# Install OpenShift CLI
+RUN curl -LO https://mirror.openshift.com/pub/openshift-v4/clients/oc/latest/linux/oc.tar.gz && \
+    tar -xvzf oc.tar.gz && \
+    mv oc /usr/local/bin/oc && \
+    rm -f oc.tar.gz
 
 # Copy and configure MOTD
 COPY custom-motd /etc/motd
