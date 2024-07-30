@@ -30,6 +30,33 @@ RUN apk update && apk add --no-cache \
     linux-headers \
     mongodb-tools
 
+# Install PostgreSQL client tools
+RUN apt-get update && apt-get install -y \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Clean the package cache
+RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Update package lists
+RUN apt-get update
+
+# Install unixodbc-dev and fix broken dependencies
+RUN apt-get install -y -f unixodbc-dev
+
+# Add Microsoft repository and install msodbcsql18
+RUN curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - \
+    && curl https://packages.microsoft.com/config/ubuntu/20.04/prod.list > /etc/apt/sources.list.d/mssql-release.list \
+    && apt-get update \
+    && ACCEPT_EULA=Y apt-get install -y -f msodbcsql18
+
+# Install MongoDB CLI tools (mongodump, mongorestore, etc.)
+RUN wget -qO - https://www.mongodb.org/static/pgp/server-4.4.asc | apt-key add - && \
+    echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/debian buster/mongodb-org/4.4 main" | tee /etc/apt/sources.list.d/mongodb-org-4.4.list && \
+    apt-get update && \
+    apt-get install -y mongodb-org-tools && \
+    rm -rf /var/lib/apt/lists/*
+
 # SSH configuration
 RUN mkdir -p /run/sshd && \
     echo 'root:root' | chpasswd && \
